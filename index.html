@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.16/p5.js"></script>
+<script>
+let angle = 0;
+let fill_angle = 0;
+let outWeight = .1;
+
+let NstrokeWidth;
+let Nmargin;
+let dx;
+let dy;
+let Nmarginbottom;
+
+let l1sx, l1sy, l2sx, l2sy, l3sx, l3sy, l4sx, l4sy, l5sx, l5sy, l6sx, l6sy;
+
+function setup() {
+  createCanvas(windowHeight * .9, windowHeight * .7);
+  smooth();
+  console.log(windowWidth, windowHeight);
+  console.log(width, height);
+
+
+  NstrokeWidth = 120 * width / 650;
+  Nmargin = 50 * height / 650;
+  dx = 12 * width / 450; // 277.68;
+  dy = 36 * width / 450; // 333.36;
+  Nmarginbottom = (height - dy * 8)/2;
+
+  l1sx = Nmargin + NstrokeWidth;
+  l1sy = height - Nmarginbottom;
+  l2sx = Nmargin;
+  l2sy = height - Nmarginbottom;
+  l3sx = dx * 16 + Nmargin;
+  l3sy = height - Nmarginbottom;
+  l4sx = dx * 16 + NstrokeWidth + Nmargin;
+  l4sy = height - Nmarginbottom;
+  l5sx = dx * 8+ Nmargin;
+  l5sy = height - dy * 8 - Nmarginbottom;
+  l6sx = dx * 8 + NstrokeWidth + Nmargin;
+  l6sy = height - dy * 8 - Nmarginbottom;
+}
+
+
+function draw() {
+
+  background(0, 98, 157);
+  // line
+  stroke(255, 255, 255, 255);
+  strokeWeight(outWeight);
+  strokeJoin(ROUND);
+  noFill();
+  // 12,36 -> 30,54
+
+  let l1 = new Line(dx, -dy, l1sx, l1sy);
+  l1.draw();
+
+  let l2 = new Line(dx, -dy, l2sx, l2sy);
+  l2.draw();
+
+  let l3 = new Line(dx, -dy, l3sx, l3sy);
+  l3.draw();
+
+  let l4 = new Line(dx, -dy, l4sx, l4sy);
+  l4.draw();
+
+  let l5 = new Line(dx, dy, l5sx, l5sy);
+  l5.draw();
+  let l6 = new Line(dx, dy, l6sx, l6sy);
+  l6.draw();
+
+  draw_crossline(l1.points, l2.points);
+  draw_crossline(l3.points, l4.points);
+  draw_crossline(l5.points, l6.points);
+
+  fill_angle += 0.003;
+}
+
+class Line {
+  constructor(dx, dy, startX, startY) {
+    this.startX = startX;
+    this.startY = startY;
+    this.dx = dx;
+    this.dy = dy;
+    let dv = dist(0, 0, dx, dy); // sqrt(pow(dx,2)+pow(dy,2));
+    [this.cos_d, this.sin_d, this.tan_d] = [dx / dv, dy / dv, dy / dx];
+    this.noiseScale = 0.01;
+    this.points = [];
+  }
+  draw() {
+    beginShape();
+    for (let i=-1;++i<9;) {
+      noFill();
+      let xd = this.startX + i * this.dx;
+      let yd = this.startY + i * this.dy;
+      let noise_factor = noise(xd * this.noiseScale, yd * this.noiseScale);
+      let noiseV = noise_factor * 30;
+
+      // move everything with animation
+      let x = xd + noiseV * this.sin_d * sin(angle * noise_factor);
+      // let y = yd + noiseV * this.cos_d * cos(angle * noise_factor * 10);
+      let y = yd + noiseV * this.cos_d * cos(angle * noise_factor * 3);
+      vertex(x, y);
+      this.points.push([x, y]);
+
+    }
+    endShape();
+
+    for(let i=-1;++i<this.points.length;) {
+      fill(255, 255, 255, 255);
+      ellipse(this.points[i][0],this.points[i][1],1,1);
+    }
+
+    angle += 0.003;
+  }
+}
+
+// draw lines to draw triangles
+let draw_crossline = (l1, l2) => {
+  let line_array = [];
+  // +-2 lines from each points
+  for (let i=-1,l=l1.length;++i<l;) {
+    for (let j=-3;++j<3;) {
+      let p2i = i + j;
+      if(p2i < 0 || p2i >= l) continue;
+      let index = `${i}-${j}`;
+      if(line_array.indexOf(index) > -1) continue;
+      if(
+        (i==0 && j ==0)||(i+1==l && j==0)
+        ) strokeWeight(outWeight);
+      else strokeWeight(.1);
+      noFill();
+      line_array.push(index);
+      line(l1[i][0], l1[i][1], l2[p2i][0], l2[p2i][1]);
+    }
+  }
+
+  draw_triangle(l1[0], l1[1], l2[0]);
+  draw_triangle(l1[0], l1[1], l2[2]);
+  draw_triangle(l1[2], l2[1], l2[2]);
+  draw_triangle(l1[2], l2[1], l2[3]);
+  draw_triangle(l1[2], l2[2], l2[3]);
+  draw_triangle(l1[3], l2[3], l2[4]);
+  draw_triangle(l1[3], l2[3], l2[4]);
+  draw_triangle(l1[6], l1[8], l2[3]);
+  draw_triangle(l1[3], l2[4], l2[7]);
+  draw_triangle(l1[2], l1[6], l2[6]);
+  draw_triangle(l1[5], l2[4], l2[7]);
+  draw_triangle(l1[5], l1[7], l2[8]);
+  draw_triangle(l1[5], l1[7], l2[8]);
+};
+let draw_triangle = (...arr) => {
+  let noise_factor = noise(arr[0][0], arr[0][1]);
+  // fill(255, 255, 255, 20 + 50 * noise_factor * sin(noise_factor * fill_angle * 30));
+  fill(255, 255, 255, 20 + 50 * noise_factor * sin(noise_factor * fill_angle / 20));
+  //fill(255, 255, 255, 50);
+  strokeWeight(0);
+  triangle(arr[0][0], arr[0][1], arr[1][0], arr[1][1], arr[2][0], arr[2][1]);
+};
+
+
+</script>
+<style>
+body {
+  /*background-color: #00629D;*/
+}
+</style>
+</head>
+<body>
+
+</body>
+</html>
